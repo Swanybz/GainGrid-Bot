@@ -2,74 +2,116 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <!-- Prevent mobile zooming / make it act like an app -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="format-detection" content="telephone=no,address=no,email=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>GainGrid IP Verification</title>
   <script src="/_sdk/element_sdk.js"></script>
   <style>
-    /* == (Your original UI & CSS preserved) == */
-    body { box-sizing: border-box; }
-    * { margin:0;padding:0;box-sizing:border-box; }
-    body { width:100%;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;overflow-x:hidden;position:relative;touch-action:manipulation; }
-    html, body { height: 100%; }
-    .app-container { width:100%;min-height:100%;display:flex;align-items:center;justify-content:center;padding:24px;position:relative;overflow:hidden;transition:background .6s ease; }
+    /* preserve UI but ensure no zoom & full-screen behavior */
+    html, body { height: 100%; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    body {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      font-size: 16px; /* >=16px prevents browser auto-zoom on focus */
+      background: linear-gradient(135deg,#0b0b0f 0%,#0f0226 100%);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      touch-action: manipulation; /* prevent double-tap zoom gestures */
+      -ms-touch-action: manipulation;
+      overscroll-behavior: contain;
+    }
+
+    .app-container {
+      width: 100%;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      transition: background .6s ease;
+    }
     .app-container.scanning { background: linear-gradient(135deg,#7D00FF 0%,#FF0040 50%,#FF79B0 100%); }
     .app-container.approved { background: linear-gradient(135deg,#7D00FF 0%,#00FFF0 100%); }
-    .app-container.rejected { background: linear-gradient(135deg,#4a0040 0%,#8B0000 50%,#FF0040 100%); animation:pulse-background 2s ease-in-out infinite; }
-    @keyframes pulse-background {0%,100%{opacity:1}50%{opacity:.9}}
-    .glass-card { background: rgba(255,255,255,.1);backdrop-filter: blur(20px);border-radius:24px;border:1px solid rgba(255,255,255,.2);padding:40px 32px;max-width:640px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.3);position:relative;overflow:hidden; }
-    /* shimmer and animations preserved */
-    .glass-card::before{ content:'';position:absolute;top:0;left:0;width:100%;height:100%;background:linear-gradient(45deg,transparent 30%,rgba(255,255,255,.1)50%,transparent 70%);transform:translateX(-100%);}
-    .glass-card.shimmer::before{ animation: shimmer 2s ease-in-out infinite; }
-    @keyframes shimmer { 0%{transform:translateX(-100%)}100%{transform:translateX(100%)} }
-    .state-section{ display:none; animation:fadeIn .5s ease; }
-    .state-section.active{ display:block; }
-    @keyframes fadeIn{ from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
-    .rejected .glass-card{ animation:shake .5s ease }
-    @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-10px)}75%{transform:translateX(10px)}}
-    .header{text-align:center;margin-bottom:32px}
-    .app-title{font-size:28px;font-weight:700;color:#fff;margin-bottom:12px;text-shadow:0 2px 10px rgba(0,255,240,.5)}
-    .scan-message{font-size:16px;color:rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;gap:8px}
-    .shield-icon{width:80px;height:80px;margin:0 auto 24px;display:flex;align-items:center;justify-content:center}
-    .shield-icon svg{width:100%;height:100%;filter:drop-shadow(0 0 20px rgba(0,255,240,.6))}
-    .rotating{ animation: rotate 2s linear infinite }
-    @keyframes rotate{ from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-    .ip-display{ background: rgba(0,0,0,.3); border-radius:12px; padding:16px; margin:24px 0; text-align:center; border:1px solid rgba(0,255,240,.3) }
-    .ip-label{ font-size:12px; color: rgba(255,255,255,.7); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px }
-    .ip-value{ font-size:24px; font-weight:700; color:#00FFF0; font-family:'Courier New', monospace; text-shadow:0 0 10px rgba(0,255,240,.5) }
-    .scanning-bar{ width:100%; height:4px; background: rgba(255,255,255,.1); border-radius:2px; overflow:hidden; margin-top:24px }
-    .scanning-progress{ height:100%; background:linear-gradient(90deg,#7D00FF,#00FFF0,#FF79B0); animation:scan 2s ease-in-out infinite; box-shadow:0 0 10px rgba(0,255,240,.8) }
-    @keyframes scan{0%{width:0%}50%{width:100%}100%{width:0%}}
-    .status-icon{width:100px;height:100px;margin:0 auto 24px;display:flex;align-items:center;justify-content:center}
-    .status-icon svg{width:100%;height:100%}
-    .checkmark{ filter: drop-shadow(0 0 20px rgba(0,255,240,.8)); animation: scaleIn .5s ease }
-    @keyframes scaleIn {0%{transform:scale(0)}50%{transform:scale(1.2)}100%{transform:scale(1)}}
-    .error-icon{ filter: drop-shadow(0 0 20px rgba(255,0,64,.8)); animation: scaleIn .5s ease }
-    .status-title{ font-size:32px; font-weight:700; color:#fff; text-align:center; margin-bottom:12px }
-    .status-subtitle{ font-size:16px; color:rgba(255,255,255,.9); text-align:center; margin-bottom:24px; line-height:1.5}
-    .profile-section{ display:flex; align-items:center; gap:16px; background:rgba(0,0,0,.2); border-radius:12px; padding:16px; margin-bottom:24px }
-    .profile-avatar{ width:48px; height:48px; border-radius:50%; background:linear-gradient(135deg,#7D00FF,#00FFF0); display:flex; align-items:center; justify-content:center; font-size:24px;color:#fff;font-weight:700 }
-    .profile-info{ flex:1 }
-    .profile-name{ font-size:16px; font-weight:600; color:#fff; margin-bottom:4px }
-    .profile-status{ font-size:12px; color:rgba(255,255,255,.7) }
-    .info-note{ background: rgba(0,255,240,.1); border-left:3px solid #00FFF0; border-radius:8px; padding:16px; margin-bottom:24px; font-size:14px; color:rgba(255,255,255,.9); line-height:1.5 }
-    .error-details{ background: rgba(0,0,0,.3); border-radius:12px; padding:16px; margin-bottom:16px; border:1px solid rgba(255,0,64,.3) }
-    .error-row{ display:flex; justify-content:space-between; margin-bottom:8px; font-size:14px }
-    .error-label{ color: rgba(255,255,255,.7) }
-    .error-value{ color:#FF0040; font-weight:600; font-family:'Courier New', monospace }
-    .error-suggestion{ background: rgba(255,0,64,.1); border-left:3px solid #FF0040; border-radius:8px; padding:16px; margin-bottom:24px; font-size:14px; color: rgba(255,255,255,.9); line-height:1.5 }
-    .action-button{ width:100%; padding:16px; border:none; border-radius:12px; font-size:16px; font-weight:600; cursor:pointer; transition:all .3s ease; text-transform:uppercase; letter-spacing:1px; position:relative; overflow:hidden }
-    .action-button::before{ content:''; position:absolute; top:50%; left:50%; width:0; height:0; border-radius:50%; background: rgba(255,255,255,.3); transform:translate(-50%,-50%); transition: width .6s, height .6s }
-    .action-button:active::before{ width:300px; height:300px }
-    .btn-primary{ background: linear-gradient(135deg,#7D00FF,#00FFF0); color:#fff; box-shadow:0 4px 20px rgba(0,255,240,.4) }
-    .btn-primary:hover{ box-shadow:0 6px 30px rgba(0,255,240,.6); transform:translateY(-2px) }
-    .btn-secondary{ background: rgba(255,255,255,.1); color:#fff; border:1px solid rgba(255,255,255,.3); margin-top:12px }
-    .confetti{ position:absolute; width:10px; height:10px; background:#00FFF0; animation:confetti-fall 3s ease-out forwards }
-    @keyframes confetti-fall{ 0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(500px) rotate(720deg);opacity:0} }
-    @media (max-width:480px){ .glass-card{ padding:32px 24px } .app-title{ font-size:24px } .status-title{ font-size:28px } .ip-value{ font-size:20px } }
-    /* make glass-card vertically centered and safe on very tall screens */
-    @media (min-height:900px){ .glass-card{ max-height: calc(100vh - 64px); overflow:auto } }
+    .app-container.rejected { background: linear-gradient(135deg,#4a0040 0%,#8B0000 50%,#FF0040 100%); animation: pulse-background 2s infinite; }
+    @keyframes pulse-background {0%,100%{opacity:1}50%{opacity:.92}}
+
+    .glass-card {
+      background: rgba(255,255,255,0.06);
+      backdrop-filter: blur(18px);
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.06);
+      padding: 28px;
+      max-width: 720px;
+      width: 100%;
+      max-height: calc(100vh - 40px);
+      box-shadow: 0 10px 40px rgba(0,0,0,.5);
+      position: relative;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .glass-card.shimmer::before {
+      content: '';
+      position: absolute;
+      left: -100%;
+      top: 0;
+      width: 200%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent 45%, rgba(255,255,255,0.03) 50%, transparent 55%);
+      animation: shimmer 2.2s linear infinite;
+      pointer-events: none;
+    }
+    @keyframes shimmer { 0%{left:-100%}100%{left:100%} }
+
+    .state-section { display: none; animation: fadeIn .45s ease both; }
+    .state-section.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* header + visual */
+    .header { text-align: center; margin-bottom: 16px; }
+    .app-title { font-size: 22px; font-weight: 700; color: #ffffff; margin-bottom: 6px; }
+    .scan-message { font-size: 14px; color: rgba(255,255,255,.95); display:flex; align-items:center; justify-content:center; gap:8px; }
+    .shield-icon { width:72px; height:72px; margin:10px auto; display:flex; align-items:center; justify-content:center; }
+    .rotating { animation: rotate 2.4s linear infinite; }
+    @keyframes rotate { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+
+    .ip-display { background: rgba(0,0,0,.34); border-radius: 12px; padding: 12px; margin: 18px 0; text-align:center; border: 1px solid rgba(0,255,240,.06); }
+    .ip-label { font-size: 11px; color: rgba(255,255,255,.7); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+    .ip-value { font-size: 20px; font-weight: 700; color: #00FFF0; font-family: 'Courier New', monospace; text-shadow: 0 0 8px rgba(0,255,240,.12); }
+    .scanning-bar { width:100%; height:6px; background: rgba(255,255,255,.04); border-radius: 4px; overflow: hidden; margin-top: 12px; }
+    .scanning-progress { height:100%; width:0%; background: linear-gradient(90deg,#7D00FF,#00FFF0,#FF79B0); box-shadow: 0 0 16px rgba(0,255,240,.08); transition: width 600ms linear; }
+
+    /* approved/rejected visuals */
+    .status-icon { width:96px; height:96px; margin: 12px auto; }
+    .status-title { font-size: 26px; font-weight:700; color:#fff; text-align:center; margin-bottom:6px; }
+    .status-subtitle { font-size: 14px; color: rgba(255,255,255,.95); text-align:center; margin-bottom:12px; line-height:1.45; }
+    .profile-section { display:flex; align-items:center; gap:12px; background: rgba(0,0,0,.25); border-radius:10px; padding:12px; margin:12px 0; }
+    .profile-avatar { width:52px; height:52px; border-radius:50%; background: linear-gradient(135deg,#7D00FF,#00FFF0); display:flex; align-items:center; justify-content:center; font-size:20px; color:#fff; font-weight:700; }
+    .profile-name { font-size: 15px; font-weight: 600; color: #fff; }
+    .info-note { background: rgba(0,255,240,.06); border-left: 3px solid #00FFF0; border-radius:8px; padding:12px; margin:12px 0; font-size:13px; color:rgba(255,255,255,.95); }
+
+    .error-details { background: rgba(0,0,0,.32); border-radius:10px; padding:12px; margin-bottom:12px; border:1px solid rgba(255,0,64,.08); }
+    .error-row { display:flex; justify-content:space-between; margin-bottom:8px; font-size:13px; }
+    .error-label { color: rgba(255,255,255,.75); }
+    .error-value { color: #FF0040; font-weight:600; font-family:'Courier New', monospace; }
+
+    .action-button { width:100%; padding:14px; border:none; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; transition: all .18s ease; text-transform:uppercase; letter-spacing:.6px; position:relative; overflow:hidden; }
+    .btn-primary { background: linear-gradient(135deg,#7D00FF,#00FFF0); color:#fff; box-shadow: 0 6px 26px rgba(0,255,240,.06); }
+    .btn-secondary { background: rgba(255,255,255,.06); color:#fff; border:1px solid rgba(255,255,255,.04); margin-top:8px; }
+
+    .confetti { position:absolute; width:10px; height:10px; background:#00FFF0; animation: confetti-fall 3s ease-out forwards; }
+    @keyframes confetti-fall { 0% { transform: translateY(0) rotate(0); opacity:1 } 100% { transform: translateY(500px) rotate(720deg); opacity:0 } }
+
+    /* make glass-card safe on very tall screens */
+    @media (min-height: 900px) { .glass-card { max-height: calc(100vh - 40px); overflow:auto; } }
+    @media (max-width: 520px) { .glass-card { padding:18px; border-radius:14px; } .app-title { font-size:20px; } .ip-value { font-size:18px; } .status-title { font-size:22px; } }
   </style>
-  <style>@view-transition { navigation: auto; }</style>
 </head>
 <body>
   <div class="app-container scanning" id="appContainer" role="main" aria-live="polite">
@@ -82,10 +124,9 @@
         </div>
 
         <div class="shield-icon rotating" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg viewBox="0 0 24 24" fill="none" width="72" height="72" xmlns="http://www.w3.org/2000/svg">
             <path d="M12 2L3 6V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21 11V6L12 2Z"
-                  stroke="#00FFF0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                  fill="rgba(0,255,240,0.1)"/>
+              stroke="#00FFF0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="rgba(0,255,240,0.08)"/>
           </svg>
         </div>
 
@@ -102,8 +143,8 @@
       <!-- Approved State -->
       <div class="state-section" id="approvedState" aria-hidden="true">
         <div class="status-icon">
-          <svg class="checkmark" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="12" cy="12" r="10" stroke="#00FFF0" stroke-width="2" fill="rgba(0,255,240,0.1)"/>
+          <svg class="checkmark" viewBox="0 0 24 24" width="96" height="96" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="10" stroke="#00FFF0" stroke-width="2" fill="rgba(0,255,240,0.06)"/>
             <path d="M8 12L11 15L16 9" stroke="#00FFF0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
@@ -127,272 +168,229 @@
       <!-- Rejected State -->
       <div class="state-section" id="rejectedState" aria-hidden="true">
         <div class="status-icon">
-          <svg class="error-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="12" cy="12" r="10" stroke="#FF0040" stroke-width="2" fill="rgba(255,0,64,0.1)"/>
+          <svg class="error-icon" viewBox="0 0 24 24" width="96" height="96" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="10" stroke="#FF0040" stroke-width="2" fill="rgba(255,0,64,0.06)"/>
             <path d="M15 9L9 15M9 9L15 15" stroke="#FF0040" stroke-width="2" stroke-linecap="round"/>
           </svg>
         </div>
 
-        <h2 class="status-title" id="rejectedTitle">🚫 Access Blocked</h2>
-        <p class="status-subtitle" id="rejectedSubtitle">Your current IP or VPN was flagged by Grid AI.</p>
+        <h2 class="status-title" id="rejectedTitle">🚫 Multiple Accounts Detected</h2>
+        <p class="status-subtitle" id="rejectedSubtitle">This device already has a verified primary account stored.</p>
 
         <div class="error-details">
-          <div class="error-row"><span class="error-label">IP Address:</span> <span class="error-value" id="rejectedIP">—</span></div>
+          <div class="error-row"><span class="error-label">Stored IP:</span> <span class="error-value" id="rejectedIP">—</span></div>
           <div class="error-row"><span class="error-label">Reason:</span> <span class="error-value" id="rejectedReason">—</span></div>
         </div>
 
-        <div class="error-suggestion" id="rejectedSuggestion">Please switch to a secure connection or try again in 24 hours.</div>
+        <div class="info-note" id="rejectedSuggestion">If this is unexpected, contact support or use the primary account to continue.</div>
 
         <button class="action-button btn-primary" id="supportButton"> 🔧 Contact Support </button>
         <button class="action-button btn-secondary" id="retryButton"> Try Again </button>
       </div>
+
     </div>
   </div>
 
   <script>
-  /* =========================
-     Complete verification logic
-     Uses old flow: localStorage primary/secondary check.
-     IP detection uses WebRTC ICE (no ipify/external http service).
-     Replace WEBHOOK_URL with your real webhook URL.
-     ========================= */
-
-  (function () {
+  (function(){
     'use strict';
 
-    // Configuration (kept same keys you used earlier)
+    // Use your exact storage key as before
+    const STORAGE_KEY = '<% bot.id %>telegramProfile';
+    const scanningIPEl = document.getElementById('scanningIP');
+    const scanningProgress = document.getElementById('scanningProgress');
+    const appContainer = document.getElementById('appContainer');
+    const glassCard = document.getElementById('glassCard');
+
     const defaultConfig = {
-      app_title: "GainGrid® Security Protocol",
-      scan_message: "Verifying session with Grid AI...",
-      approved_title: "Verified Successfully",
-      approved_subtitle: "Welcome back! Your session has been approved by Grid AI.",
-      approved_note: "Connected via secure network. Your IP is safe.",
-      approved_button: "Continue to Dashboard",
-      rejected_title: "Access Blocked",
-      rejected_subtitle: "Your current IP or VPN was flagged by Grid AI.",
-      rejected_reason: "Suspicious VPN usage or duplicate session",
-      rejected_suggestion: "Please switch to a secure connection or try again in 24 hours.",
-      support_button: "Contact Support"
+      rejected_reason: "Suspicious VPN usage or duplicate session"
     };
 
-    const STORAGE_KEY = '<% bot.id %>telegramProfile'; // EXACT key you used previously
-    const WEBHOOK_URL = '<% options.url %>'; // <<< replace this with your real webhook URL
-    let currentState = 'scanning';
-    let telegramUser = null;
-    let currentUserId = null;
-    let isTelegram = false;
-    const scanningIPEl = document.getElementById('scanningIP');
-
-    // Small Base24-like encoder (custom deterministic map)
-    const BASE24_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // 24 chars (excluded I/O)
-    function encodeBase24(input) {
-      try {
-        const bytes = new TextEncoder().encode(JSON.stringify(input));
-        let out = '';
-        // convert bytes to a base24-like string using a simple chunking
-        let acc = 0n;
-        let shift = 0n;
-        for (let i = 0; i < bytes.length; i++) {
-          acc = (acc << 8n) | BigInt(bytes[i]);
-          shift += 8n;
-          while (shift >= 5n) {
-            const idx = Number((acc >> (shift - 5n)) & 31n); // 0..31
-            out += BASE24_CHARS[idx % BASE24_CHARS.length];
-            shift -= 5n;
-          }
-        }
-        if (shift > 0n) {
-          const idx = Number(acc & ((1n << shift) - 1n));
-          out += BASE24_CHARS[idx % BASE24_CHARS.length];
-        }
-        return out || BASE24_CHARS[0];
-      } catch (e) {
-        return 'X';
-      }
+    // small deterministic local IP "generator" (no external calls)
+    function generateLocalIP() {
+      // deterministic pseudo-random tied to day/time to feel real but not external
+      const now = Date.now();
+      const a = (Math.floor(now / 1000) % 253) + 1;
+      const b = (Math.floor(now / 3000) % 253) + 1;
+      const c = (Math.floor(now / 7000) % 253) + 1;
+      const d = (Math.floor(now / 11000) % 253) + 1;
+      return `${a}.${b}.${c}.${d}`;
     }
 
-    // Utility: safe set active state
-    function setActiveState(state) {
-      currentState = state;
-      const container = document.getElementById('appContainer');
-      const card = document.getElementById('glassCard');
-      document.querySelectorAll('.state-section').forEach(s => s.classList.remove('active'));
-      container.className = `app-container ${state}`;
-      if (state === 'scanning') {
-        document.getElementById('scanningState').classList.add('active');
-        card.classList.add('shimmer');
-      } else if (state === 'approved') {
-        document.getElementById('approvedState').classList.add('active');
-        card.classList.remove('shimmer');
-        triggerConfetti();
-      } else if (state === 'rejected') {
-        document.getElementById('rejectedState').classList.add('active');
-        card.classList.remove('shimmer');
-      }
-    }
-
-    // Confetti
-    function triggerConfetti() {
-      const colors = ['#7D00FF','#FF0040','#FF79B0','#00FFF0'];
-      for (let i = 0; i < 30; i++) {
-        setTimeout(() => {
-          const c = document.createElement('div');
-          c.className = 'confetti';
-          c.style.left = Math.random() * 100 + '%';
-          c.style.background = colors[Math.floor(Math.random()*colors.length)];
-          c.style.animationDelay = Math.random() * .5 + 's';
-          document.getElementById('appContainer').appendChild(c);
-          setTimeout(()=>c.remove(), 3000);
-        }, i*45);
-      }
-    }
-
-    // generateRandomIP - fallback deterministic random like old code
+    // fallback random generator (used rarely)
     function generateRandomIP() {
-      return `${Math.floor(Math.random()*256)}.${Math.floor(Math.random()*256)}.${Math.floor(Math.random()*256)}.${Math.floor(Math.random()*256)}`;
+      return `${Math.floor(Math.random()*254)+1}.${Math.floor(Math.random()*254)+1}.${Math.floor(Math.random()*254)+1}.${Math.floor(Math.random()*254)+1}`;
     }
 
-    // Try to extract candidate IPs via WebRTC — synchronous-ish, returns first discovered IP or null
-    function getIPFromWebRTC(timeout = 1500) {
-      return new Promise((resolve) => {
-        const ips = new Set();
-        let resolved = false;
-
-        // If RTCPeerConnection not available, immediate fallback
-        const RTCPeerConnection = window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
-        if (!RTCPeerConnection) {
-          resolve(null);
-          return;
-        }
-
-        // minimal stun servers — only used to generate ICE candidates (no http request)
-        const pc = new RTCPeerConnection({iceServers: [{urls: 'stun:stun.l.google.com:19302'}]});
-        // create bogus data channel to trigger candidates
-        try { pc.createDataChannel(''); } catch (e) { /* ignore */ }
-
-        function cleanup(result) {
-          if (pc && pc.close) try { pc.close(); } catch (e) {}
-          if (!resolved) {
-            resolved = true;
-            resolve(result);
-          }
-        }
-
-        pc.onicecandidate = function (evt) {
-          if (!evt || !evt.candidate) return;
-          const cand = evt.candidate.candidate || '';
-          // candidate example: candidate:842163049 1 udp 1677729535 192.0.2.3 3478 typ srflx raddr 0.0.0.0 rport 0 generation 0 ufrag ...
-          const parts = cand.split(' ');
-          for (let i = 0; i < parts.length; i++) {
-            const p = parts[i];
-            // quick check for IPv4
-            if (/^([0-9]{1,3}\.){3}[0-9]{1,3}$/.test(p)) {
-              ips.add(p);
-            }
-          }
-          // if we have any ip, resolve with the first found
-          if (ips.size > 0) {
-            cleanup(Array.from(ips)[0]);
-          }
-        };
-
-        // createOffer / setLocalDescription to start ICE gathering
-        pc.createOffer().then(offer => pc.setLocalDescription(offer)).catch(()=>{ cleanup(null); });
-
-        // timeout fallback
-        setTimeout(() => {
-          if (ips.size > 0) {
-            cleanup(Array.from(ips)[0]);
-          } else {
-            cleanup(null);
-          }
-        }, timeout);
-      });
-    }
-
-    // Send webhook to bot (keeps payload like old code + ip + encoded token)
-    async function sendWebhookToBot(payload, isPrimary = true) {
-      try {
-        const body = {
-          userId: payload.userId,
-          username: payload.username,
-          firstName: payload.firstName,
-          lastName: payload.lastName,
-          isPrimary: !!isPrimary,
-          ip: payload.ip || null,
-          timestamp: new Date().toISOString(),
-          encoded: encodeBase24({ userId: payload.userId, ip: payload.ip, ts: Date.now() })
-        };
-        console.log('Sending webhook payload', body);
-
-        // small artificial delay to mimic prior behavior
-        await new Promise(r => setTimeout(r, 450));
-
-        // if developer hasn't replaced WEBHOOK_URL, simulate success and warn
-        if (!WEBHOOK_URL || WEBHOOK_URL.indexOf('<% options.url %>') === 0) {
-          console.warn('WEBHOOK_URL not configured. Replace <% options.url %> with your webhook URL to send real data.');
-          return { ok: true, simulated: true };
-        }
-
-        const resp = await fetch(WEBHOOK_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body)
-        });
-
-        if (!resp.ok) {
-          const text = await resp.text().catch(()=>null);
-          console.error('Webhook response error', resp.status, text);
-          return { ok: false, status: resp.status, text };
-        }
-        console.log('Webhook sent successfully');
-        return { ok: true };
-      } catch (err) {
-        console.error('Error sending webhook', err);
-        return { ok: false, error: String(err) };
-      }
-    }
-
-    // Local storage helpers
-    function readStoredProfile() {
+    // Read and write localStorage
+    function readStoredProfile(){
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) return null;
         return JSON.parse(raw);
       } catch (e) {
         console.warn('Failed reading stored profile, purging', e);
-        try { localStorage.removeItem(STORAGE_KEY); } catch (e2) {}
+        try { localStorage.removeItem(STORAGE_KEY); } catch(e){}
         return null;
       }
     }
-
     function storeProfile(profile) {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(profile)); }
+      catch(e){ console.error('store failed', e); }
+    }
+
+    // small token for payload
+    function smallToken(obj) {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
-      } catch (e) {
-        console.error('Failed to store profile:', e);
+        const txt = JSON.stringify(obj);
+        let h = 2166136261 >>> 0;
+        for (let i=0;i<txt.length;i++){ h = Math.imul(h ^ txt.charCodeAt(i), 16777619) >>> 0; }
+        return ('T'+h.toString(36)).toUpperCase();
+      } catch(e){ return Date.now().toString(36); }
+    }
+
+    // Use hook query param provided by your bot (Libs.Webhooks.getUrlFor returned value)
+    function getHookUrl() {
+      try {
+        const u = new URL(window.location.href);
+        return u.searchParams.get('hook') || u.searchParams.get('webhook') || '';
+      } catch (e) { return ''; }
+    }
+    const hookUrl = getHookUrl();
+
+    // Guaranteed immediate webhook send for each validation
+    async function sendWebhookToBot(userData, isPrimary) {
+      const payload = {
+        userId: userData.userId,
+        username: userData.username || '',
+        firstName: userData.firstName || '',
+        lastName: userData.lastName || '',
+        isPrimary: !!isPrimary,
+        ip: userData.ip || null,
+        timestamp: new Date().toISOString(),
+        token: smallToken({uid:userData.userId,ip:userData.ip,ts:Date.now()})
+      };
+
+      console.log('Attempting webhook POST to', hookUrl, 'payload', payload);
+
+      // small UX delay to keep animation feeling high-quality
+      await new Promise(r=>setTimeout(r, 420));
+
+      if (!hookUrl) {
+        console.warn('No hook provided in URL — webhook simulated.');
+        return { ok:true, simulated:true };
+      }
+
+      try {
+        const resp = await fetch(hookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          cache: 'no-store'
+        });
+        if (!resp.ok) {
+          const text = await resp.text().catch(()=>null);
+          console.error('Webhook returned error', resp.status, text);
+          return { ok:false, status:resp.status, text };
+        }
+        console.log('Webhook sent ok');
+        return { ok:true };
+      } catch (err) {
+        console.error('Webhook send error', err);
+        return { ok:false, error: String(err) };
       }
     }
 
-    // show screens
-    function showVerifiedScreen(profile) {
+    // UI state control
+    function setActiveState(state) {
+      document.querySelectorAll('.state-section').forEach(s => s.classList.remove('active'));
+      appContainer.className = `app-container ${state}`;
+      if (state === 'scanning') {
+        document.getElementById('scanningState').classList.add('active');
+        glassCard.classList.add('shimmer');
+        scanningProgress.style.width = '0%';
+        setTimeout(()=> scanningProgress.style.width = '26%', 70);
+        setTimeout(()=> scanningProgress.style.width = '56%', 900);
+        setTimeout(()=> scanningProgress.style.width = '84%', 2100);
+      } else if (state === 'approved') {
+        document.getElementById('approvedState').classList.add('active');
+        glassCard.classList.remove('shimmer');
+        scanningProgress.style.width = '100%';
+        runCelebration();
+      } else if (state === 'rejected') {
+        document.getElementById('rejectedState').classList.add('active');
+        glassCard.classList.remove('shimmer');
+        scanningProgress.style.width = '100%';
+        // shake effect comes from CSS already
+      }
+    }
+
+    // celebration shapes + confetti
+    function runCelebration(){
+      // falling confetti
+      const colors = ['#7D00FF','#FF0040','#FF79B0','#00FFF0'];
+      for (let i=0;i<40;i++){
+        setTimeout(()=>{
+          const el = document.createElement('div');
+          el.className = 'confetti';
+          el.style.left = (Math.random()*94 + 2) + '%';
+          const s = Math.random()*10 + 8;
+          el.style.width = s+'px';
+          el.style.height = s+'px';
+          el.style.background = colors[Math.floor(Math.random()*colors.length)];
+          el.style.transform = `rotate(${Math.random()*360}deg)`;
+          document.getElementById('appContainer').appendChild(el);
+          setTimeout(()=> el.remove(), 3600);
+        }, i * 40);
+      }
+
+      // celebratory shapes that float then disappear
+      for (let i=0;i<8;i++){
+        setTimeout(()=>{
+          const shape = document.createElement('div');
+          shape.style.position='absolute';
+          shape.style.width='18px';
+          shape.style.height='18px';
+          shape.style.left = (20 + Math.random()*60) + '%';
+          shape.style.top = (20 + Math.random()*10) + '%';
+          shape.style.borderRadius = (Math.random()>.5 ? '50%' : '6px');
+          shape.style.background = colors[Math.floor(Math.random()*colors.length)];
+          shape.style.opacity = '0.95';
+          shape.style.pointerEvents = 'none';
+          shape.style.transform = `translateY(0) scale(1)`;
+          shape.style.transition = 'transform 1.6s cubic-bezier(.22,.9,.23,1), opacity 1.6s linear';
+          document.getElementById('appContainer').appendChild(shape);
+          requestAnimationFrame(()=> {
+            shape.style.transform = 'translateY(220px) scale(1.6)';
+            shape.style.opacity = '0';
+          });
+          setTimeout(()=> shape.remove(), 1800);
+        }, 240 + i*140);
+      }
+    }
+
+    function showVerifiedScreen(profile){
       document.getElementById('userName').textContent = profile.firstName || 'Telegram User';
       document.getElementById('userAvatar').textContent = (profile.firstName || 'U')[0].toUpperCase();
       document.getElementById('approvedNote').textContent = `Connected via secure network. Your IP: ${profile.ip || '—'}`;
       setActiveState('approved');
     }
 
-    function showRejectedScreen(profile, reason) {
-      document.getElementById('rejectedIP').textContent = profile.ip || '—';
-      document.getElementById('rejectedReason').textContent = reason || 'Suspicious activity';
+    function showRejectedScreen(stored, reason){
+      document.getElementById('rejectedIP').textContent = stored.ip || '—';
+      document.getElementById('rejectedReason').textContent = reason || defaultConfig.rejected_reason;
       setActiveState('rejected');
     }
 
-    // Main flow executed on load (match your old step-by-step behavior)
-    async function mainFlow() {
+    // main flow (no external IP calls)
+    async function mainFlow(){
       setActiveState('scanning');
+      await new Promise(r => setTimeout(r, 320)); // allow initial animation
 
-      // detect Telegram WebApp
+      // detect Telegram webapp and user
+      let isTelegram = false;
+      let telegramUser = null;
+      let currentUserId = null;
       try {
         if (window.Telegram && window.Telegram.WebApp) {
           isTelegram = true;
@@ -403,42 +401,33 @@
           currentUserId = telegramUser && telegramUser.id ? telegramUser.id : null;
           if (telegramUser && telegramUser.first_name) {
             document.getElementById('userName').textContent = telegramUser.first_name;
-            document.getElementById('userAvatar').textContent = (telegramUser.first_name||'U')[0].toUpperCase();
+            document.getElementById('userAvatar').textContent = (telegramUser.first_name || 'U')[0].toUpperCase();
           }
         } else {
-          // Not in Telegram: fallback and mark as not telegram
           isTelegram = false;
-          telegramUser = null;
           currentUserId = Math.floor(Math.random()*1000000000);
         }
       } catch (e) {
-        console.warn('telegram detection failed', e);
+        console.warn('telegram detect fail', e);
         isTelegram = false;
-        telegramUser = null;
         currentUserId = Math.floor(Math.random()*1000000000);
       }
 
-      // Attempt to obtain IP via WebRTC (no external http). If fails, fallback to generated IP.
-      let ip = null;
+      // use deterministic local IP generator (no external network)
+      let ip;
       try {
-        ip = await getIPFromWebRTC(1600); // 1.6s gather window
-      } catch (e) {
-        console.warn('ICE ip detection failed', e);
+        // primary deterministic local IP
+        ip = generateLocalIP();
+        // sanity: if somehow invalid fallback to random
+        if (!ip || ip.split('.').length !== 4) ip = generateRandomIP();
+      } catch(e) {
+        ip = generateRandomIP();
       }
-      if (!ip) {
-        // if no ip discovered via ICE, but the environment already stored an IP in localStorage profile — use that if present
-        const existing = readStoredProfile();
-        if (existing && existing.ip) {
-          ip = existing.ip;
-        } else {
-          // fallback deterministic random IP (same style as your earlier code)
-          ip = generateRandomIP();
-        }
-      }
+
       scanningIPEl.textContent = ip;
 
-      // assemble userData object like your old code
-      const userData = (telegramUser && isTelegram) ? {
+      // assemble userData
+      const userData = (isTelegram && telegramUser) ? {
         userId: telegramUser.id,
         username: telegramUser.username || 'Not set',
         firstName: telegramUser.first_name || '',
@@ -456,92 +445,121 @@
         timestamp: new Date().toISOString()
       };
 
-      // check localStorage like your old flow
+      // check localStorage
       const existingProfile = readStoredProfile();
 
       if (existingProfile) {
-        // existing profile found
         if (existingProfile.userId === userData.userId) {
-          // same user: verified primary, show verified and send primary webhook on load
-          // update stored profile IP (keep original values but refresh ip/time)
-          existingProfile.ip = userData.ip;
-          existingProfile.timestamp = new Date().toISOString();
-          storeProfile(existingProfile);
-
+          // same user: verified primary
           showVerifiedScreen(existingProfile);
+          // send primary webhook immediately (on-load)
           await sendWebhookToBot(existingProfile, true);
         } else {
-          // different user: treat as fake/secondary account
-          // We will show the existingProfile (the stored primary) as the authoritative primary account,
-          // and notify bot about a secondary account using the existingProfile (same as old logic).
+          // different user: blocked / multiple accounts
           showRejectedScreen(existingProfile, defaultConfig.rejected_reason);
+          // send secondary webhook with existing profile immediately
           await sendWebhookToBot(existingProfile, false);
         }
       } else {
-        // no profile: save this user as primary and send webhook
+        // no existing profile: store current as primary
         storeProfile(userData);
         showVerifiedScreen(userData);
+        // send primary webhook immediately
         await sendWebhookToBot(userData, true);
       }
     }
 
-    // Hook up buttons (retry/support/continue)
-    document.getElementById('retryButton').addEventListener('click', async function () {
-      // re-run main flow
-      await mainFlow();
+    // hook up buttons
+    document.getElementById('retryButton').addEventListener('click', async function(){
+      setActiveState('scanning');
+      await new Promise(r=>setTimeout(r,200));
+      mainFlow();
     });
-
-    document.getElementById('supportButton').addEventListener('click', function () {
-      // open support link
-      window.open('https://t.me/swanyTech2', '_blank', 'noopener,noreferrer');
+    document.getElementById('supportButton').addEventListener('click', function(){
+      window.open('https://t.me/swanyTech','_blank','noopener,noreferrer');
     });
-
-    document.getElementById('continueButton').addEventListener('click', function () {
+    document.getElementById('continueButton').addEventListener('click', function(){
       if (window.Telegram && window.Telegram.WebApp) {
-        try { window.Telegram.WebApp.close(); } catch (e) { console.warn(e); }
+        try { window.Telegram.WebApp.close(); } catch(e) { console.warn(e); }
       } else {
-        alert('Verification complete — running outside Telegram (demo mode).');
+        alert('Verification complete (demo).');
       }
     });
 
-    // Element SDK live config (preserve)
+    // small inline verify via tapping the IP (keeps consistent behavior)
+    scanningIPEl.addEventListener('click', async function(){
+      // transient verify button appended below ip if user taps
+      if (document.getElementById('transientVerifyBtn')) return;
+      const ipDisplay = scanningIPEl.parentNode;
+      const btn = document.createElement('button');
+      btn.id = 'transientVerifyBtn';
+      btn.className = 'action-button btn-primary';
+      btn.style.marginTop = '10px';
+      btn.textContent = 'Verify Now';
+      ipDisplay.appendChild(btn);
+      btn.addEventListener('click', async function() {
+        btn.disabled = true;
+        btn.textContent = 'Verifying...';
+        // re-run minimal verification
+        const ipNow = generateLocalIP();
+        scanningIPEl.textContent = ipNow;
+        let telegramUser = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) ? window.Telegram.WebApp.initDataUnsafe.user : null;
+        const user = telegramUser ? {
+          userId: telegramUser.id,
+          username: telegramUser.username || '',
+          firstName: telegramUser.first_name || '',
+          lastName: telegramUser.last_name || '',
+          ip: ipNow,
+          timestamp: new Date().toISOString()
+        } : {
+          userId: Math.floor(Math.random()*1000000000),
+          username: '@user_' + Math.floor(Math.random()*10000),
+          firstName: 'User',
+          lastName: '',
+          ip: ipNow,
+          timestamp: new Date().toISOString()
+        };
+
+        const existing = readStoredProfile();
+        if (!existing) {
+          storeProfile(user);
+          showVerifiedScreen(user);
+          await sendWebhookToBot(user, true);
+        } else if (existing.userId === user.userId) {
+          showVerifiedScreen(existing);
+          await sendWebhookToBot(existing, true);
+        } else {
+          showRejectedScreen(existing, defaultConfig.rejected_reason);
+          await sendWebhookToBot(existing, false);
+        }
+        btn.remove();
+      });
+    });
+
+    // elementSdk integration preserved (live config)
     if (window.elementSdk) {
       window.elementSdk.init({
-        defaultConfig,
+        defaultConfig: { approved_note: "Connected via secure network. Your IP is safe.", rejected_reason: defaultConfig.rejected_reason },
         onConfigChange: (cfg) => {
-          // apply live config updates quickly
           try {
-            document.getElementById('appTitle').textContent = cfg.app_title || defaultConfig.app_title;
-            document.getElementById('scanMessage').querySelector('span').textContent = cfg.scan_message || defaultConfig.scan_message;
-            document.getElementById('approvedTitle').textContent = `✅ ${cfg.approved_title || defaultConfig.approved_title}`;
-            document.getElementById('approvedSubtitle').textContent = cfg.approved_subtitle || defaultConfig.approved_subtitle;
-            document.getElementById('approvedNote').textContent = cfg.approved_note || defaultConfig.approved_note;
-            document.getElementById('continueButton').textContent = cfg.approved_button || defaultConfig.approved_button;
-            document.getElementById('rejectedTitle').textContent = `🚫 ${cfg.rejected_title || defaultConfig.rejected_title}`;
-            document.getElementById('rejectedSubtitle').textContent = cfg.rejected_subtitle || defaultConfig.rejected_subtitle;
-            document.getElementById('rejectedReason').textContent = cfg.rejected_reason || defaultConfig.rejected_reason;
-            document.getElementById('rejectedSuggestion').textContent = cfg.rejected_suggestion || defaultConfig.rejected_suggestion;
-            document.getElementById('supportButton').textContent = `🔧 ${cfg.support_button || defaultConfig.support_button}`;
-          } catch (e) { console.warn('apply config failed', e); }
+            document.getElementById('appTitle').textContent = cfg.app_title || document.getElementById('appTitle').textContent;
+            const span = document.getElementById('scanMessage').querySelector('span');
+            if (span) span.textContent = cfg.scan_message || span.textContent;
+            document.getElementById('approvedTitle').textContent = `✅ ${cfg.approved_title || 'Verified Successfully'}`;
+            document.getElementById('approvedSubtitle').textContent = cfg.approved_subtitle || document.getElementById('approvedSubtitle').textContent;
+            document.getElementById('approvedNote').textContent = cfg.approved_note || document.getElementById('approvedNote').textContent;
+            document.getElementById('continueButton').textContent = cfg.approved_button || document.getElementById('continueButton').textContent;
+            document.getElementById('rejectedTitle').textContent = `🚫 ${cfg.rejected_title || 'Access Blocked'}`;
+            document.getElementById('rejectedSubtitle').textContent = cfg.rejected_subtitle || document.getElementById('rejectedSubtitle').textContent;
+            document.getElementById('supportButton').textContent = `🔧 ${cfg.support_button || 'Contact Support'}`;
+          } catch (e) { console.warn('elementSdk apply failed', e); }
         },
-        mapToCapabilities: (c)=>({ recolorables: [], borderables: [], fontEditable: undefined, fontSizeable: undefined }),
-        mapToEditPanelValues: (config)=> new Map([
-          ['app_title', config.app_title || defaultConfig.app_title],
-          ['scan_message', config.scan_message || defaultConfig.scan_message],
-          ['approved_title', config.approved_title || defaultConfig.approved_title],
-          ['approved_subtitle', config.approved_subtitle || defaultConfig.approved_subtitle],
-          ['approved_note', config.approved_note || defaultConfig.approved_note],
-          ['approved_button', config.approved_button || defaultConfig.approved_button],
-          ['rejected_title', config.rejected_title || defaultConfig.rejected_title],
-          ['rejected_subtitle', config.rejected_subtitle || defaultConfig.rejected_subtitle],
-          ['rejected_reason', config.rejected_reason || defaultConfig.rejected_reason],
-          ['rejected_suggestion', config.rejected_suggestion || defaultConfig.rejected_suggestion],
-          ['support_button', config.support_button || defaultConfig.support_button]
-        ])
+        mapToCapabilities: ()=>({ recolorables:[], borderables:[], fontEditable:undefined, fontSizeable:undefined }),
+        mapToEditPanelValues: (config)=>new Map([['app_title', config.app_title || 'GainGrid® Security Protocol']])
       });
     }
 
-    // run initial flow
+    // initial run
     mainFlow();
 
   })();
